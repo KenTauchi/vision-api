@@ -12,12 +12,6 @@
         margin: 5px 5px;
       }
 
-      video {
-        position: fixed;
-        top: 0;
-        left: 0;
-      }
-
       h1 {
         position: fixed;
         bottom: 0;
@@ -29,13 +23,18 @@
         top: 0;
         left: 0;
       }
+
+      img {
+        width: 600;
+        height: auto;
+      }
     </style>
   </head>
   <body>
     <!-- Basic Cloud Vision (Google) Demo -->
 
-    <video autoplay="true" id="videoElement"></video>
-    <button id="vision_button">Analyze</button>
+    <input id="myinput" type="file" onchange="loadFile();" />
+    <div id="output"></div>
     <div id="results"></div>
 
     <script>
@@ -65,77 +64,97 @@
         window.location.href.substr(0, window.location.href.search("#"))
       );
 
-      // Access camera
-      var video = document.querySelector("#videoElement");
-      if (navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices
-          .getUserMedia({ video: true })
-          .then(function (stream) {
-            video.srcObject = stream;
-          })
-          .catch(function (err) {
-            console.log("Something went wrong!");
-          });
-      }
+      var loadFile = function () {
+        var selectedfile = document.getElementById("myinput").files;
+        if (selectedfile.length > 0) {
+          var imageFile = selectedfile[0];
+          var fileReader = new FileReader();
+          fileReader.onload = function (fileLoadedEvent) {
+            var srcData = fileLoadedEvent.target.result;
+            var newImage = document.createElement("img");
+            newImage.src = srcData;
+            document.getElementById("output").innerHTML = newImage.outerHTML;
 
-      // We only get to work when the vision button is clicked
-      document
-        .querySelector("#vision_button")
-        .addEventListener("click", (evt) => {
-          // extract image as base64, scale it down to reduce data transfer speed
-          var scale = 0.25;
-          var canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth * scale;
-          canvas.height = video.videoHeight * scale;
-          canvas
-            .getContext("2d")
-            .drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          // dataUrl contains base64 version of image
-          var dataUrl = canvas.toDataURL();
-
-          // Send image to google to analyze
-          fetch("https://vision.googleapis.com/v1/images:annotate", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              requests: [
-                {
-                  features: {
-                    type: "LABEL_DETECTION",
+            fetch("https://vision.googleapis.com/v1/images:annotate", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                requests: [
+                  {
+                    image: {
+                      content: srcData.split(",")[1],
+                    },
+                    features: [
+                      {
+                        maxResults: 10,
+                        type: "FACE_DETECTION",
+                      },
+                    ],
                   },
-                  image: {
-                    // have to extract only the image data from dataURL
-                    content: dataUrl.substring("data:image/png;base64,".length),
-                  },
-                },
-              ],
-            }),
-          })
-            .then((resp) => {
-              return resp.json();
+                ],
+              }),
             })
-            .then((json) => {
-              // Simply output the response
-              console.log(json);
-              results.innerHTML = "";
-              json.responses[0].labelAnnotations.forEach((annotation) => {
-                let description = document.createElement("span");
+              .then((resp) => {
+                return resp.json();
+              })
+              .then((json) => {
+                // Simply output the response
+                console.log(json);
+                results.innerHTML = "";
+                let data = json.responses[0].faceAnnotations[0];
+                let description = document.createElement("div");
                 let score = document.createElement("span");
+                let description2 = document.createElement("div");
+                let score2 = document.createElement("span");
+                let description3 = document.createElement("div");
+                let score3 = document.createElement("span");
+                let description4 = document.createElement("div");
+                let score4 = document.createElement("span");
 
                 let div = document.createElement("div");
-                description.innerText = annotation.description;
-                score.innerText = annotation.score;
+                description.innerText = "Is the person in Anger?";
+                score.innerText =
+                  data.angerLikelihood === "VERY_UNLIKELY"
+                    ? "Not"
+                    : data.angerLikelihood === "POSSIBLE"
+                    ? "Maybe..."
+                    : "Yes!";
+                description2.innerText = "Is the person in Joy";
+                score2.innerText =
+                  data.joyLikelihood === "VERY_UNLIKELY"
+                    ? "No"
+                    : data.joyLikelihood === "POSSIBLE"
+                    ? "Maybe..."
+                    : "Yes!";
+                description3.innerText = "The person is in surrow?";
+                score3.innerText =
+                  data.sorrowLikelihood === "VERY_UNLIKELY"
+                    ? "No"
+                    : data.sorrowLikelihood === "POSSIBLE"
+                    ? "Maybe..."
+                    : "Yes!";
+                description4.innerText = "Is the person surprised?";
+                score4.innerText =
+                  data.surpriseLikelihood === "VERY_UNLIKELY"
+                    ? "No"
+                    : data.angerLikelihood === "POSSIBLE"
+                    ? "Maybe..."
+                    : "Yes!";
 
                 div.append(description, score);
+                div.append(description2, score2);
+                div.append(description3, score3);
+                div.append(description4, score4);
 
                 results.append(div);
               });
-            });
-        });
+          };
+        }
+        fileReader.readAsDataURL(imageFile);
+      };
     </script>
   </body>
 </html>
