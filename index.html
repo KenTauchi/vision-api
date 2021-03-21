@@ -42,10 +42,10 @@
       // Need to first get an access token
       if (!document.location.href.includes("access_token")) {
         let client_id =
-          "107256413984-himbdkj6rbv03pcj7sib3bjb8jvv45u0.apps.googleusercontent.com";
+          "89352452748-m1nvjopq50k1uo7gbmp4ngqivfnvb7a4.apps.googleusercontent.com";
         document.location.href = [
           `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}`,
-          `redirect_uri=${window.location.href}`,
+          `redirect_uri=https://kentauchi.github.io/vision-api/`,
           `response_type=id_token token`,
           `scope=openid https://www.googleapis.com/auth/cloud-vision`,
           `nonce=${Math.random().toString()}`,
